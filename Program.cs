@@ -1,13 +1,13 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using UserRoleMangement;
 using UserRoleMangement.Database;
 using UserRoleMangement.Database.Repositories;
 using UserRoleMangement.Database.Repositories.Interfaces;
+using UserRoleMangement.Middleware;
+using UserRoleMangement.TokenGeneration;
 
 public partial class Program
 {
@@ -15,11 +15,11 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddControllers();
-        builder.Services.AddOpenApi();
         builder.Services.AddDbContext<DatabaseContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+        builder.Services.AddScoped<IJwtTokenHelper, JwtTokenHelper>();
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -34,8 +34,16 @@ public partial class Program
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.FromSeconds(180)
             };
+        });
+        builder.Services.AddAuthorization();
+        builder.Services.AddDistributedMemoryCache();
+        builder.Services.AddSession(options =>
+        {
+            options.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
         });
         builder.Services.AddAuthorization();
         var app = builder.Build();
@@ -43,13 +51,11 @@ public partial class Program
         {
             app.MapOpenApi();
         }
-
+        app.UseSession();
+        app.UseMiddleware<ExceptionMiddleware>();
+        app.UseMiddleware<SessionAuthMiddleware>();
         app.UseHttpsRedirection();
-
-        app.UseAuthorization();
-
         app.MapControllers();
-
         app.Run();
     }
 }

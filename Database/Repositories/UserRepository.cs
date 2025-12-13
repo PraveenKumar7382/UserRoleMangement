@@ -38,10 +38,13 @@ namespace UserRoleMangement.Database.Repositories
             {
                 return (false, "User with this email or username already exists.", null);
             }
+            var existingRole = await _roleRepository.GetByName(user.Role!.RoleName!);
 
-            Role role = await _roleRepository.AddAsync(user.Role);
-            user.RoleId = role.RoleId;
-            user.Role = null;
+            if(existingRole.IsExixtingRole)
+            {
+                user.RoleId = existingRole.Id;
+                user.Role = null;
+            }
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
@@ -83,10 +86,11 @@ namespace UserRoleMangement.Database.Repositories
 
         public async Task<User?> UpdateAsync(User user)
         {
-            User existingUser = await _context.Users.FindAsync(user.UserId);
-            if (existingUser == null) 
+
+            var trackedEntity = _context.Users.Local.FirstOrDefault(u => u.UserId == user.UserId);
+            if (trackedEntity != null)
             {
-                return null;
+                _context.Entry(trackedEntity).State = EntityState.Detached;
             }
             Role role = await _roleRepository.AddAsync(user.Role!);
             user.RoleId = role.RoleId;

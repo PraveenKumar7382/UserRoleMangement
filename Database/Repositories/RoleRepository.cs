@@ -24,6 +24,16 @@
             return await _context.Roles.FindAsync(id);
         }
 
+        public async Task<(bool IsExixtingRole, int Id)> GetByName(string roleName)
+        {
+            var existingRole = await _context.Roles
+                .FirstOrDefaultAsync(x=>x.RoleName == roleName);
+            if (existingRole != null)
+                return (true, existingRole.RoleId);
+
+            return (false, 0);
+        }
+
         public async Task<Role> AddAsync(Role role)
         {
             var existingRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == role.RoleName);
@@ -34,9 +44,10 @@
             }
             else
             {
-                var newRole = new Role { RoleName = role.RoleName };
+                var newRole = new Role { RoleName = role.RoleName, Description = role.Description };
                 _context.Roles.Add(newRole);
                 await _context.SaveChangesAsync();
+
             }
             return role;
         }

@@ -19,10 +19,6 @@ namespace UserRoleMangement.Models
          ErrorMessage = "Password must be 6 to 16 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.")]
         public string PasswordHash { get; set; } = string.Empty;
         public int RoleId { get; set; }
-
-        public string CurrentToken { get; set; }
-
-        public DateTime TokenExpiry {  get; set; }
         public Role? Role { get; set; }
     }
 }

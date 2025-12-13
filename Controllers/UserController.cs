@@ -16,7 +16,7 @@ namespace UserRoleMangement.Controllers
             _repo = repo;
         }
 
-        [HttpGet]
+        [HttpGet("GetAll")]
         public async Task<IActionResult> Get() =>
             Ok(await _repo.GetAllAsync());
 
@@ -28,8 +28,8 @@ namespace UserRoleMangement.Controllers
             return user == null ? NotFound() : Ok(user);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] User user)
+        [HttpPost("Create")]
+        public async Task<IActionResult> Create(User user)
         {
             var result = await _repo.AddAsync(user);
 
@@ -47,7 +47,7 @@ namespace UserRoleMangement.Controllers
             });
         }
 
-        [HttpPost]
+        [HttpPost("ForgotPassword")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPassword forgotPassword)
         {
             var result = await _repo.ForgotPasswordAsync(forgotPassword);
@@ -61,13 +61,14 @@ namespace UserRoleMangement.Controllers
             });
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("Update/{id}")]
         public async Task<IActionResult> Update(int id, User user)
         {
             user.UserId = id;
             var result = await _repo.UpdateAsync(user);
 
             if(result == null) { return NotFound(); } 
+
             return Ok(new
             {
                 message = "User Datails are updated",
@@ -79,7 +80,7 @@ namespace UserRoleMangement.Controllers
             });
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _repo.DeleteAsync(id);
