@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json;
@@ -20,7 +21,7 @@ namespace UserRoleMangement.Middleware
         {
             try
             {
-                await _next(context); 
+                await _next(context);
             }
             catch (Exception ex)
             {
@@ -31,14 +32,19 @@ namespace UserRoleMangement.Middleware
         private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";
-            int statusCode = (int)HttpStatusCode.InternalServerError; 
+            int statusCode = (int)HttpStatusCode.InternalServerError;
             string message = "An unexpected error occurred. Please try again later.";
 
             switch (exception)
             {
                 case DbUpdateException dbEx:
                     statusCode = (int)HttpStatusCode.BadRequest;
-                    message = "Database operation failed. Please check the input or contact support.";
+                    message = $"Database update failed: {dbEx.InnerException?.Message ?? dbEx.Message}";
+                    break;
+
+                case SqlException sqlEx:
+                    statusCode = (int)HttpStatusCode.BadRequest;
+                    message = $"SQL error: {sqlEx.Message}";
                     break;
 
                 case ArgumentNullException argNullEx:
@@ -77,11 +83,14 @@ namespace UserRoleMangement.Middleware
                     break;
 
                 default:
-                    _logger.LogError(exception, "Unhandled exception occurred");
+                    statusCode = (int)HttpStatusCode.InternalServerError;
+                    message = $"An unexpected error occurred: {exception.Message}";
                     break;
             }
 
-            _logger.LogError(exception, $"Exception caught by middleware: {exception.Message}");
+            _logger.LogError(exception, $"Exception caught by middleware: {message}");
+
+            context.Response.StatusCode = statusCode;
             var response = new
             {
                 success = false,
@@ -89,9 +98,7 @@ namespace UserRoleMangement.Middleware
                 message
             };
 
-            context.Response.StatusCode = statusCode;
-            var jsonResponse = JsonSerializer.Serialize(response);
-            await context.Response.WriteAsync(jsonResponse);
+            await context.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
     }
 }

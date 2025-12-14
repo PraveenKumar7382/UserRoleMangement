@@ -19,12 +19,12 @@ namespace UserRoleMangement.Database.Repositories
 
         public async Task<IEnumerable<User>> GetAllAsync()
         {
-            return await _context.Users.ToListAsync();
+            return await _context.Users.Include(u => u.Role).ToListAsync();
         }
 
         public async Task<User> GetById(int id)
         {
-           var result = await _context.Users.FindAsync(id);
+            var result = await _context.Users.FindAsync(id);
             return await _context.Users.FindAsync(id);
         }
 
@@ -40,7 +40,7 @@ namespace UserRoleMangement.Database.Repositories
             }
             var existingRole = await _roleRepository.GetByName(user.Role!.RoleName!);
 
-            if(existingRole.IsExixtingRole)
+            if (existingRole.IsExixtingRole)
             {
                 user.RoleId = existingRole.Id;
                 user.Role = null;
@@ -56,11 +56,12 @@ namespace UserRoleMangement.Database.Repositories
         {
             User existingUser = await _context.Users.FindAsync(forgotPassword.UserName);
 
-            if (existingUser == null) {
+            if (existingUser == null)
+            {
                 return (false, "User Name does not exist");
             }
 
-            existingUser.PasswordHash =  BCrypt.Net.BCrypt.HashPassword(forgotPassword.NewPassword);
+            existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(forgotPassword.NewPassword);
 
             _context.Users.Update(existingUser);
             await _context.SaveChangesAsync();
@@ -83,28 +84,59 @@ namespace UserRoleMangement.Database.Repositories
             }
             return (false, "Invalid username or password.", null);
         }
-
         public async Task<User?> UpdateAsync(User user)
         {
+            var trackedEntity = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == user.UserId);
 
-            var trackedEntity = _context.Users.Local.FirstOrDefault(u => u.UserId == user.UserId);
-            if (trackedEntity != null)
+            if (trackedEntity == null)
+                return null;
+
+            bool isChanged = false;
+
+            if (trackedEntity.UserName != user.UserName)
             {
-                _context.Entry(trackedEntity).State = EntityState.Detached;
+                trackedEntity.UserName = user.UserName;
+                isChanged = true;
             }
-            Role role = await _roleRepository.AddAsync(user.Role!);
-            user.RoleId = role.RoleId;
-            user.Role = null;
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
-            _context.Users.Update(user);
+
+            if (trackedEntity.Email != user.Email)
+            {
+                trackedEntity.Email = user.Email;
+                isChanged = true;
+            }
+
+            if (!string.IsNullOrEmpty(user.PasswordHash) &&
+                !BCrypt.Net.BCrypt.Verify(user.PasswordHash, trackedEntity.PasswordHash))
+            {
+                trackedEntity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+                isChanged = true;
+            }
+
+            if (user.Role != null)
+            {
+                var role = await _roleRepository.AddAsync(user.Role);
+                if (trackedEntity.RoleId != role.RoleId)
+                {
+                    trackedEntity.RoleId = role.RoleId;
+                    isChanged = true;
+                }
+            }
+
+            if (!isChanged)
+                return null;
+
             await _context.SaveChangesAsync();
-            return user;
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == user.UserId);
         }
 
         public async Task<bool> DeleteAsync(int userId)
         {
             var user = await _context.Users
-                .Include(u => u.Role) 
+                .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
 
             if (user == null)

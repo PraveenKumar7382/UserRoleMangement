@@ -17,8 +17,19 @@ namespace UserRoleMangement.Controllers
         }
 
         [HttpGet("GetAll")]
-        public async Task<IActionResult> Get() =>
-            Ok(await _repo.GetAllAsync());
+        public async Task<IActionResult> Get()
+        {
+           List<User> users = [.. (await _repo.GetAllAsync())];
+            var userDtos = users.Select(u => new UserDto
+            {
+                UserId = u.UserId,
+                UserName = u.UserName,
+                Email = u.Email,
+                RoleName = u.Role?.RoleName,
+                RoleDescription = u.Role?.Description
+            }).ToList();
+            return Ok(userDtos);
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
@@ -67,7 +78,11 @@ namespace UserRoleMangement.Controllers
             user.UserId = id;
             var result = await _repo.UpdateAsync(user);
 
-            if(result == null) { return NotFound(); } 
+            if (result == null)
+            {
+                return Ok(new { message = "No changes In user Details" });
+            }
+
 
             return Ok(new
             {
@@ -80,14 +95,19 @@ namespace UserRoleMangement.Controllers
             });
         }
 
+
         [HttpDelete("Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _repo.DeleteAsync(id);
-            if(!result){
-                  return NotFound();
+            if (!result)
+            {
+                return NotFound();
             }
-            return Ok(await _repo.DeleteAsync(id));
+            return Ok(new{
+                message = "User Has been  deleted successfully",
+                Id = id
+            });
         }
     }
 }

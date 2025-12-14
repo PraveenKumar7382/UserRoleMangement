@@ -1,7 +1,6 @@
 ﻿namespace UserRoleMangement.Database.Repositories
 {
     using Microsoft.EntityFrameworkCore;
-    using System;
     using UserRoleMangement.Database.Repositories.Interfaces;
     using UserRoleMangement.Models;
 
@@ -28,8 +27,7 @@
         {
             var existingRole = await _context.Roles
                 .FirstOrDefaultAsync(x=>x.RoleName == roleName);
-            if (existingRole != null)
-                return (true, existingRole.RoleId);
+            if (existingRole != null)                return (true, existingRole.RoleId);
 
             return (false, 0);
         }

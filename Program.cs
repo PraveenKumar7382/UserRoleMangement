@@ -16,27 +16,14 @@ public partial class Program
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddControllers();
         builder.Services.AddDbContext<DatabaseContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+         options.UseSqlServer(
+         builder.Configuration.GetConnectionString("DefaultConnection"),
+         sqlOptions => sqlOptions.CommandTimeout(120) 
+        ));
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IRoleRepository, RoleRepository>();
         builder.Services.AddScoped<IJwtTokenHelper, JwtTokenHelper>();
-        builder.Services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-        {
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-                ClockSkew = TimeSpan.FromSeconds(180)
-            };
-        });
+        builder.Services.AddSingleton<IUserTokenStore, StoreTokenInMemory>();
         builder.Services.AddAuthorization();
         builder.Services.AddDistributedMemoryCache();
         builder.Services.AddSession(options =>
@@ -52,6 +39,7 @@ public partial class Program
             app.MapOpenApi();
         }
         app.UseSession();
+        app.UseMiddleware<LogMiddleware>();
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseMiddleware<SessionAuthMiddleware>();
         app.UseHttpsRedirection();

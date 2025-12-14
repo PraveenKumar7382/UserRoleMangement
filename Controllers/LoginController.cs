@@ -1,8 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using UserRoleMangement.Database.Repositories.Interfaces;
 using UserRoleMangement.Models;
 using UserRoleMangement.TokenGeneration;
@@ -34,8 +30,8 @@ namespace UserRoleMangement.Controllers
 
             var token = _jwtTokenHelper.GenerateToken(result.User!);
 
-            HttpContext.Session.SetString("JwtToken", token);
-            HttpContext.Session.SetInt32("UserId", result.User!.UserId);
+            var tokenStore = HttpContext.RequestServices.GetRequiredService<IUserTokenStore>();
+            tokenStore.AddToken(result.User!.UserId, token);
 
             return Ok(new
             {

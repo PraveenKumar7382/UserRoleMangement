@@ -19,11 +19,11 @@ namespace UserRoleMangement.TokenGeneration
         public string GenerateToken(User user)
         {
             try {
-                List<Claim> claims =
-                [
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new Claim(ClaimTypes.Name, user.UserName)
-            ];
+                var claims = new[]
+                {
+                  new Claim("userId", user.UserId.ToString()),
+                  new Claim(ClaimTypes.Name, user.UserName)
+                };
 
                 var keyString = _configuration["Jwt:Key"];
                 var keyBytes = Encoding.UTF8.GetBytes(keyString);
