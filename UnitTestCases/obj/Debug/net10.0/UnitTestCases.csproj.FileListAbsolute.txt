@@ -31,6 +31,7 @@ C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Mi
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Microsoft.Data.SqlClient.dll
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.dll
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.Abstractions.dll
+C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.InMemory.dll
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.Relational.dll
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.SqlServer.dll
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Microsoft.Identity.Client.dll
@@ -143,6 +144,9 @@ C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\ru
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\runtimes\win-x86\native\Microsoft.Data.SqlClient.SNI.dll
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\UserRoleMangement.dll
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\UserRoleMangement.pdb
+C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\en\UserRoleMangement.resources.dll
+C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\hi-IN\UserRoleMangement.resources.dll
+C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\te-IN\UserRoleMangement.resources.dll
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\obj\Debug\net10.0\UnitTestCases.csproj.AssemblyReference.cache
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\obj\Debug\net10.0\rpswa.dswa.cache.json
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\obj\Debug\net10.0\UnitTestCases.GeneratedMSBuildEditorConfig.editorconfig
@@ -167,4 +171,3 @@ C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\obj\Debug\net10.0\re
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\obj\Debug\net10.0\UnitTestCases.pdb
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\obj\Debug\net10.0\UnitTestCases.genruntimeconfig.cache
 C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\obj\Debug\net10.0\ref\UnitTestCases.dll
-C:\Users\sahit\source\repos\UserRoleMangement\UnitTestCases\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.InMemory.dll

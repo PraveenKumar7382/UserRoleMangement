@@ -694,6 +694,17 @@
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
           }
+        },
+        "resources": {
+          "en/UserRoleMangement.resources.dll": {
+            "locale": "en"
+          },
+          "hi-IN/UserRoleMangement.resources.dll": {
+            "locale": "hi-IN"
+          },
+          "te-IN/UserRoleMangement.resources.dll": {
+            "locale": "te-IN"
+          }
         }
       }
     }

@@ -17,6 +17,17 @@
         },
         "runtime": {
           "UserRoleMangement.dll": {}
+        },
+        "resources": {
+          "en/UserRoleMangement.resources.dll": {
+            "locale": "en"
+          },
+          "hi-IN/UserRoleMangement.resources.dll": {
+            "locale": "hi-IN"
+          },
+          "te-IN/UserRoleMangement.resources.dll": {
+            "locale": "te-IN"
+          }
         }
       },
       "Azure.Core/1.47.1": {
