@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
-using UserRoleMangement.Database;
-using UserRoleMangement.Database.Repositories;
-using UserRoleMangement.Models;
+using Application.Database;
+using Application.Database.Repositories;
+using Application.Models;
 
 namespace UnitTestCases.Repositories
 {

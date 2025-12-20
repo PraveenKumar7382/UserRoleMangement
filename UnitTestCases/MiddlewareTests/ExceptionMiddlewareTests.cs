@@ -1,19 +1,30 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using System.Net;
-using UserRoleMangement.Middleware;
+using Application.Middleware;
+using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 namespace UnitTestCases.MiddlewareTests
 {
     public class ExceptionMiddlewareTests
     {
-        private readonly Mock<ILogger<ExceptionMiddleware>> _loggerMock;
+        private Mock<ILogger<ExceptionMiddleware>> _loggerMock = null!;
+        private Mock<IStringLocalizer<ExceptionMiddleware>> _localizerMock = null!;
 
-        public ExceptionMiddlewareTests()
+        [SetUp]
+        public void Setup()
         {
             _loggerMock = new Mock<ILogger<ExceptionMiddleware>>();
+            _localizerMock = new Mock<IStringLocalizer<ExceptionMiddleware>>();
+
+            _localizerMock
+                .Setup(x => x[It.IsAny<string>()])
+                .Returns((string key) => new LocalizedString(key, key));
         }
 
         private static DefaultHttpContext CreateHttpContext()
@@ -30,51 +41,51 @@ namespace UnitTestCases.MiddlewareTests
         }
 
         [Test]
-        public async Task InvokeAsync_WhenCalled_ThorwsDbUpdateException()
+        public async Task InvokeAsync_DbUpdateException_ReturnsBadRequest()
         {
             var context = CreateHttpContext();
 
             var middleware = new ExceptionMiddleware(
                 _ => throw new DbUpdateException("DB error"),
-                _loggerMock.Object);
+                _loggerMock.Object,
+                _localizerMock.Object);
 
             await middleware.InvokeAsync(context);
 
-            Assert.That((int)HttpStatusCode.BadRequest, Is.EqualTo(context.Response.StatusCode));
+            Assert.That(context.Response.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
 
             var response = await ReadResponse(context);
-            Assert.That(response, Is.Not.Null);
+            Assert.That(response, Does.Contain("DatabaseUpdateFailed"));
         }
 
         [Test]
-        public async Task InvokeAsync_WhenCalled_ReturnArgumentNullException()
+        public async Task InvokeAsync_ArgumentNullException_ReturnsBadRequest()
         {
             var context = CreateHttpContext();
 
             var middleware = new ExceptionMiddleware(
                 _ => throw new ArgumentNullException("userId"),
-                _loggerMock.Object);
+                _loggerMock.Object,
+                _localizerMock.Object);
 
             await middleware.InvokeAsync(context);
 
-            Assert.That((int)HttpStatusCode.BadRequest, Is.EqualTo(context.Response.StatusCode));
-
-            var response = await ReadResponse(context);
-            Assert.That(response, Is.Not.Null);
+            Assert.That(context.Response.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
         }
 
         [Test]
-        public async Task InvokeAsync_WhenCalled_KeyNotFoundException()
+        public async Task InvokeAsync_KeyNotFoundException_ReturnsNotFound()
         {
             var context = CreateHttpContext();
 
             var middleware = new ExceptionMiddleware(
-                _ => throw new KeyNotFoundException("User not found"),
-                _loggerMock.Object);
+                _ => throw new KeyNotFoundException(),
+                _loggerMock.Object,
+                _localizerMock.Object);
 
             await middleware.InvokeAsync(context);
 
-            Assert.That((int)HttpStatusCode.NotFound, Is.EqualTo(context.Response.StatusCode));
+            Assert.That(context.Response.StatusCode, Is.EqualTo((int)HttpStatusCode.NotFound));
         }
 
         [Test]
@@ -84,29 +95,30 @@ namespace UnitTestCases.MiddlewareTests
 
             var middleware = new ExceptionMiddleware(
                 _ => throw new UnauthorizedAccessException(),
-                _loggerMock.Object);
+                _loggerMock.Object,
+                _localizerMock.Object);
 
             await middleware.InvokeAsync(context);
 
-            Assert.That((int)HttpStatusCode.Unauthorized, Is.EqualTo(context.Response.StatusCode));
+            Assert.That(context.Response.StatusCode, Is.EqualTo((int)HttpStatusCode.Unauthorized));
         }
 
-      
         [Test]
         public async Task InvokeAsync_GenericException_ReturnsInternalServerError()
         {
             var context = CreateHttpContext();
 
             var middleware = new ExceptionMiddleware(
-                _ => throw new Exception("Something went wrong"),
-                _loggerMock.Object);
+                _ => throw new Exception("Error"),
+                _loggerMock.Object,
+                _localizerMock.Object);
 
             await middleware.InvokeAsync(context);
 
-            Assert.That((int)HttpStatusCode.InternalServerError, Is.EqualTo(context.Response.StatusCode));
+            Assert.That(context.Response.StatusCode, Is.EqualTo((int)HttpStatusCode.InternalServerError));
 
             var response = await ReadResponse(context);
-            Assert.That(response, Is.Not.Null);
+            Assert.That(response, Does.Contain("UnexpectedError"));
         }
     }
 }

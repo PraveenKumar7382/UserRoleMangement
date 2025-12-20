@@ -1,138 +1,140 @@
-﻿//using Microsoft.AspNetCore.Mvc;
-//using Moq;
-//using NUnit.Framework;
-//using UserRoleMangement.Controllers;
-//using UserRoleMangement.Database.Repositories.Interfaces;
-//using UserRoleMangement.Models;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using Moq;
+using NUnit.Framework;
+using Application.Controllers;
+using Application.Database.Repositories.Interfaces;
+using Application.Models;
 
-//namespace UnitTestCases.ControllerTests
-//{
-//    public class RoleControllerTests
-//    {
-//        private RoleController _controller = null!;
-//        private Mock<IRoleRepository> _roleRepoMock = null!;
+namespace UnitTestCases.ControllerTests
+{
+    public class RoleControllerTests
+    {
+        private RoleController _controller = null!;
+        private Mock<IRoleRepository> _roleRepoMock = null!;
+        private Mock<IStringLocalizer<RoleController>> _localizerMock = null!;
 
-//        [SetUp]
-//        public void Setup()
-//        {
-//            _roleRepoMock = new Mock<IRoleRepository>();
-//            _controller = new RoleController(_roleRepoMock.Object);
-//        }
+        [SetUp]
+        public void Setup()
+        {
+            _roleRepoMock = new Mock<IRoleRepository>();
+            _localizerMock = new Mock<IStringLocalizer<RoleController>>();
 
-//        [Test]
-//        public async Task GetAllRoles_WhenCall_ReturnsOk()
-//        {
-//            List<Role> roles =
-//            [
-//            new() { RoleId = 1, RoleName = "Admin" },
-//            new() { RoleId = 2, RoleName = "User" }
-//            ];
+            _localizerMock
+                .Setup(x => x[It.IsAny<string>()])
+                .Returns((string key) => new LocalizedString(key, key));
 
-//            _roleRepoMock
-//                .Setup(r => r.GetAllAsync())
-//                .ReturnsAsync(roles);
+            _controller = new RoleController(
+                _roleRepoMock.Object,
+                _localizerMock.Object
+            );
+        }
 
-//            var result = await _controller.GetAllRoles();
+        [Test]
+        public async Task GetAllRoles_WhenCall_ReturnsOk()
+        {
+            List<Role> roles =
+            [
+                new() { RoleId = 1, RoleName = "Admin" },
+                new() { RoleId = 2, RoleName = "User" }
+            ];
 
-//            var okResult = result as OkObjectResult;
-//            Assert.NotNull(okResult);
-//            Assert.AreEqual(roles, okResult!.Value);
-//        }
+            _roleRepoMock
+                .Setup(r => r.GetAllAsync())
+                .ReturnsAsync(roles);
 
-//        [Test]
-//        public async Task GetRoleById_WhenPassId_ReturnsOk()
-//        {
-//            var role = new Role { RoleId = 1, RoleName = "Admin" };
+            var result = await _controller.GetAllRoles();
 
-//            _roleRepoMock
-//                .Setup(r => r.GetById(1))
-//                .ReturnsAsync(role);
+            var okResult = result as OkObjectResult;
+            Assert.That(okResult, Is.Not.Null);
+            Assert.That(roles, Is.EqualTo(okResult!.Value));
+        }
 
-//            var result = await _controller.GetRoleById(1);
+        [Test]
+        public async Task GetRoleById_WhenPassId_ReturnsOk()
+        {
+            var role = new Role { RoleId = 1, RoleName = "Admin" };
 
-//            var okResult = result as OkObjectResult;
-//            Assert.NotNull(okResult);
-//            Assert.AreEqual(role, okResult!.Value);
-//        }
+            _roleRepoMock
+                .Setup(r => r.GetById(1))
+                .ReturnsAsync(role);
 
-//        [Test]
-//        public async Task GetRoleById_WhenPassId_RetursExpectedResponse()
-//        {
-//            _roleRepoMock
-//                .Setup(r => r.GetById(1))!
-//                .ReturnsAsync((Role?)null);
+            var result = await _controller.GetRoleById(1);
 
-//            var result = await _controller.GetRoleById(1);
+            var okResult = result as OkObjectResult;
+            Assert.That(okResult, Is.Not.Null);
+            Assert.That(role, Is.EqualTo(okResult!.Value));
+        }
 
-//            var notFound = result as NotFoundObjectResult;
-//            Assert.NotNull(notFound);
-//            Assert.AreEqual("Role not found", notFound!.Value);
-//        }
+        [Test]
+        public async Task GetRoleById_WhenNotFound_ReturnsNotFound()
+        {
+            _roleRepoMock
+                .Setup(r => r.GetById(1))
+                .ReturnsAsync((Role?)null);
 
-//        [Test]
-//        public async Task CreateRole_WhenRoleIsInValid_ReturnModelIsInaValidState()
-//        {
-//            _controller.ModelState.AddModelError("RoleName", "Required");
+            var result = await _controller.GetRoleById(1);
 
-//            var role = new Role();
+            Assert.That(result, Is.InstanceOf<NotFoundObjectResult>());
+        }
 
-//            var result = await _controller.CreateRole(role);
+        [Test]
+        public async Task CreateRole_WhenModelInvalid_ReturnsBadRequest()
+        {
+            _controller.ModelState.AddModelError("RoleName", "Required");
 
-//            Assert.IsInstanceOf<BadRequestObjectResult>(result);
-//        }
+            var role = new Role();
 
-//        [Test]
-//        public async Task CreateRole_WhenRoleIsValid_ReturnsOk()
-//        {
-//            var role = new Role { RoleName = "Admin", Description = "Admin role" };
+            var result = await _controller.CreateRole(role);
 
-//            _roleRepoMock
-//                .Setup(r => r.AddAsync(role))
-//                .ReturnsAsync(role);
+            Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        }
 
-//            var result = await _controller.CreateRole(role);
+        [Test]
+        public async Task CreateRole_WhenValid_ReturnsOk()
+        {
+            var role = new Role { RoleName = "Admin", Description = "Admin role" };
 
-//            var okResult = result as OkObjectResult;
-//            Assert.NotNull(okResult);
-//            Assert.AreEqual(role, okResult!.Value);
-//        }
+            _roleRepoMock
+                .Setup(r => r.AddAsync(It.IsAny<Role>()))
+                .ReturnsAsync(role);
 
-//        [Test]
-//        public async Task UpdateRole_WhenPassIdWithRole_ReturnsNotFound()
-//        {
-//            _roleRepoMock
-//                .Setup(r => r.GetById(1))!
-//                .ReturnsAsync((Role?)null);
+            var result = await _controller.CreateRole(role);
 
-//            var role = new Role { RoleName = "Updated" };
+            Assert.That(result, Is.InstanceOf<OkObjectResult>());
+        }
 
-//            var result = await _controller.UpdateRole(1, role);
+        [Test]
+        public async Task UpdateRole_WhenRoleNotFound_ReturnsNotFound()
+        {
+            _roleRepoMock
+                .Setup(r => r.GetById(1))
+                .ReturnsAsync((Role?)null);
 
-//            var notFound = result as NotFoundObjectResult;
-//            Assert.That(notFound, Is.Not.Null);
-//        }
+            var role = new Role { RoleName = "Updated" };
 
-//        [Test]
-//        public async Task UpdateRole_WhenPassIdWithRoleWithExist_ReturnsOk()
-//        {
-//            var existing = new Role { RoleId = 1, RoleName = "Admin", Description = "Old" };
-//            var updated = new Role { RoleName = "AdminUpdated", Description = "New" };
+            var result = await _controller.UpdateRole(1, role);
 
-//            _roleRepoMock
-//                .Setup(r => r.GetById(1))
-//                .ReturnsAsync(existing);
+            Assert.That(result, Is.InstanceOf<NotFoundObjectResult>());
+        }
 
-//            _roleRepoMock
-//                .Setup(r => r.AddAsync(existing))
-//                .ReturnsAsync(existing);
+        [Test]
+        public async Task UpdateRole_WhenRoleExists_ReturnsOk()
+        {
+            var existing = new Role { RoleId = 1, RoleName = "AdminUpdated", Description = "Old" };
+            var updated = new Role { RoleName = "AdminUpdated", Description = "New" };
 
-//            var result = await _controller.UpdateRole(1, updated);
+            _roleRepoMock
+                .Setup(r => r.GetById(1))
+                .ReturnsAsync(existing);
 
-//            var okResult = result as OkObjectResult;
-//            Assert.That(okResult, Is.Not.Null);
-//            Assert.That(existing, Is.EqualTo(okResult!.Value));
-//            Assert.That(updated.RoleName, Is.EqualTo(existing.RoleName));
-//            Assert.That(updated.Description, Is.EqualTo(existing.Description));
-//        }
-//    }
-//}
+            _roleRepoMock
+                .Setup(r => r.AddAsync(existing))
+                .ReturnsAsync(existing);
+
+            var result = await _controller.UpdateRole(1, updated);
+
+            Assert.That(result, Is.InstanceOf<OkObjectResult>());
+        }
+    }
+}

@@ -1,183 +1,173 @@
-﻿//using Microsoft.AspNetCore.Http;
-//using Microsoft.AspNetCore.Mvc;
-//using Microsoft.EntityFrameworkCore.InMemory.Query.Internal;
-//using Moq;
-//using NUnit.Framework;
-//using UserRoleMangement.Controllers;
-//using UserRoleMangement.Database.Repositories.Interfaces;
-//using UserRoleMangement.Models;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using Moq;
+using NUnit.Framework;
+using Application.Controllers;
+using Application.Database.Repositories.Interfaces;
+using Application.Models;
 
-//namespace UnitTestCases.ControllerTests
-//{
-//    public class UserControllerTests
-//    {
-//        private UserController _controller = null!;
-//        private Mock<IUserRepository> _userRepoMock = null!;
+namespace UnitTestCases.ControllerTests
+{
+    public class UserControllerTests
+    {
+        private UserController _controller = null!;
+        private Mock<IUserRepository> _userRepoMock = null!;
+        private Mock<IStringLocalizer<UserController>> _localizerMock = null!;
 
-//        [SetUp]
-//        public void Setup()
-//        {
-//            _userRepoMock = new Mock<IUserRepository>();
-//            _controller = new UserController(_userRepoMock.Object);
-//        }
+        [SetUp]
+        public void Setup()
+        {
+            _userRepoMock = new Mock<IUserRepository>();
+            _localizerMock = new Mock<IStringLocalizer<UserController>>();
 
-//        [Test]
-//        public async Task GetAll_WhenCalled_ReturnsOk()
-//        {
-//            List<User> users =
-//            [
-//              new User { UserId = 1, UserName = "Admin" },
-//              new User { UserId = 2, UserName = "User" }
-//            ];
+            _localizerMock
+                .Setup(x => x[It.IsAny<string>()])
+                .Returns((string key) => new LocalizedString(key, key));
 
-//            _userRepoMock
-//                .Setup(r => r.GetAllAsync())
-//                .ReturnsAsync(users);
+            _controller = new UserController(
+                _userRepoMock.Object,
+                _localizerMock.Object
+            );
 
-//            var result = await _controller.Get();
+            var httpContext = new DefaultHttpContext();
+            httpContext.Items["Role"] = "admin";
+            httpContext.Items["UserId"] = 1;
 
-//            var okResult = result as OkObjectResult;
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
+        }
 
-//            Assert.Multiple(() =>
-//            {
-//                Assert.That(okResult, Is.Not.Null);
-//                Assert.That(okResult!.StatusCode, Is.EqualTo(200));
-//            });
-//        }
+        [Test]
+        public async Task GetAll_WhenCalled_ReturnsOk()
+        {
+            List<User> users =
+            [
+                new User { UserId = 1, UserName = "Admin" },
+                new User { UserId = 2, UserName = "User" }
+            ];
 
-//        [Test]
-//        public async Task GetById_WhenUserExists_ReturnsOk()
-//        {
-//            var user = new User { UserId = 1, UserName = "Admin" };
+            _userRepoMock
+                .Setup(r => r.GetAllAsync())
+                .ReturnsAsync(users);
 
-//            _userRepoMock
-//                .Setup(r => r.GetById(1))
-//                .ReturnsAsync(user);
+            var result = await _controller.Get();
 
-//            var result = await _controller.Get(1);
+            var okResult = result as OkObjectResult;
 
-//            var okResult = result as OkObjectResult;
+            Assert.That(okResult, Is.Not.Null);
+            Assert.That(okResult!.StatusCode, Is.EqualTo(200));
+        }
 
-//            Assert.Multiple(() =>
-//            {
-//                Assert.That(okResult, Is.Not.Null);
-//                Assert.That(user, Is.EqualTo(okResult!.Value));
-//            });
-//        }
+        [Test]
+        public async Task Me_WhenCalled_ReturnsOk()
+        {
+            var user = new User { UserId = 1, UserName = "Admin" };
 
-//        [Test]
-//        public async Task GetById_WhenUserDoesNotExist_ReturnsNotFound()
-//        {
-//            _userRepoMock
-//                .Setup(r => r.GetById(1))!
-//                .ReturnsAsync((User?)null);
+            _userRepoMock
+                .Setup(r => r.GetById(1))
+                .ReturnsAsync(user);
 
-//            var result = await _controller.Get(1);
+            var result = await _controller.Me();
 
-//            Assert.IsInstanceOf<NotFoundResult>(result);
-//        }
+            Assert.IsInstanceOf<OkObjectResult>(result);
+        }
 
-//        [Test]
-//        public async Task Create_WhenUserCreationFails_ReturnsBadRequest()
-//        {
-//            var user = new User { UserName = "Test" };
+        [Test]
+        public async Task Create_WhenFails_ReturnsBadRequest()
+        {
+            var user = new User { UserName = "Test" };
 
-//            _userRepoMock
-//                .Setup(r => r.AddAsync(user))
-//                .ReturnsAsync((false, "User exists", null));
+            _userRepoMock
+                .Setup(r => r.AddAsync(It.IsAny<User>()))
+                .ReturnsAsync((false, "UserExists", null));
 
-//            var result = await _controller.Create(user);
+            var result = await _controller.Create(user);
 
-//            var badRequest = result as BadRequestObjectResult;
+            Assert.IsInstanceOf<BadRequestObjectResult>(result);
+        }
 
-//            Assert.NotNull(badRequest);
-//        }
+        [Test]
+        public async Task Create_WhenSuccess_ReturnsOk()
+        {
+            var user = new User
+            {
+                UserId = 1,
+                UserName = "Admin",
+                Email = "admin@test.com",
+                Role = new Role { RoleName = "Admin", Description = "Admin role" }
+            };
 
-//        [Test]
-//        public async Task Create_WhenUserCreatedSuccessfully_ReturnsOk()
-//        {
-//            var user = new User
-//            {
-//                UserId = 1,
-//                UserName = "Admin",
-//                Email = "admin@test.com",
-//                Role = new Role { RoleName = "Admin", Description = "Admin role" }
-//            };
+            _userRepoMock
+                .Setup(r => r.AddAsync(It.IsAny<User>()))
+                .ReturnsAsync((true, "UserCreated", user));
 
-//            _userRepoMock
-//                .Setup(r => r.AddAsync(It.IsAny<User>()))
-//                .ReturnsAsync((true, "User added successfully", user));
+            var result = await _controller.Create(user);
 
-//            var result = await _controller.Create(user);
+            Assert.IsInstanceOf<OkObjectResult>(result);
+        }
 
-//            var okResult = result as OkObjectResult;
-//            Assert.NotNull(okResult);
-//        }
+        [Test]
+        public async Task ForgotPassword_WhenFails_ReturnsBadRequest()
+        {
+            var request = new ForgotPassword { UserName = "test" };
 
-//        [Test]
-//        public async Task ForgotPassword_WhenUserNotFound_ReturnsBadRequest()
-//        {
-//            var request = new ForgotPassword { UserName = "test" };
+            _userRepoMock
+                .Setup(r => r.ForgotPasswordAsync(request))
+                .ReturnsAsync((false, "UserNotFound"));
 
-//            _userRepoMock
-//                .Setup(r => r.ForgotPasswordAsync(request))
-//                .ReturnsAsync((false, "User Name does not exist"));
+            var result = await _controller.ForgotPassword(request);
 
-//            var result = await _controller.ForgotPassword(request);
+            Assert.IsInstanceOf<BadRequestObjectResult>(result);
+        }
 
-//            Assert.IsInstanceOf<BadRequestObjectResult>(result);
-//        }
+        [Test]
+        public async Task ForgotPassword_WhenSuccess_ReturnsOk()
+        {
+            var request = new ForgotPassword { UserName = "test" };
 
-//        [Test]
-//        public async Task ForgotPassword_WhenSuccess_ReturnsOk()
-//        {
-//            var request = new ForgotPassword { UserName = "test" };
+            _userRepoMock
+                .Setup(r => r.ForgotPasswordAsync(request))
+                .ReturnsAsync((true, "PasswordResetSuccess"));
 
-//            _userRepoMock
-//                .Setup(r => r.ForgotPasswordAsync(request))
-//                .ReturnsAsync((true, "Password updated"));
+            var result = await _controller.ForgotPassword(request);
 
-//            var result = await _controller.ForgotPassword(request);
+            Assert.IsInstanceOf<OkObjectResult>(result);
+        }
 
-//            Assert.IsInstanceOf<OkObjectResult>(result);
-//        }
+        [Test]
+        public async Task Update_Admin_WhenNoChanges_ReturnsOk()
+        {
+            var user = new User { UserName = "Test" };
 
-//        [Test]
-//        public async Task Update_WhenUserDoesNotExist_ReturnsNotFound()
-//        {
-//            var user = new User { UserName = "Test" };
+            _userRepoMock
+                .Setup(r => r.UpdateAsync(It.IsAny<User>()))
+                .ReturnsAsync((User?)null);
 
-//            _userRepoMock
-//                .Setup(r => r.UpdateAsync(It.IsAny<User>()))!
-//                .ReturnsAsync((User?)null);
+            var result = await _controller.Update(1, user);
 
-//            var result = await _controller.Update(1, user);
-//            var okResult = result as OkObjectResult;
+            Assert.IsInstanceOf<OkObjectResult>(result);
+        }
 
-//            Assert.Multiple(() =>
-//            {
-//                Assert.That(okResult, Is.Not.Null);
-//                Assert.That(okResult!.StatusCode, Is.EqualTo(200));
-//            });
-//        }
+        [Test]
+        public async Task Update_Admin_WhenUpdated_ReturnsOk()
+        {
+            var user = new User
+            {
+                UserId = 1,
+                UserName = "Updated",
+                Email = "updated@test.com"
+            };
 
-//        [Test]
-//        public async Task Update_WhenUserExists_ReturnsOk()
-//        {
-//            var user = new User
-//            {
-//                UserId = 1,
-//                UserName = "Updated",
-//                Email = "updated@test.com"
-//            };
+            _userRepoMock
+                .Setup(r => r.UpdateAsync(It.IsAny<User>()))
+                .ReturnsAsync(user);
 
-//            _userRepoMock
-//                .Setup(r => r.UpdateAsync(It.IsAny<User>()))
-//                .ReturnsAsync(user);
+            var result = await _controller.Update(1, user);
 
-//            var result = await _controller.Update(1, user);
-
-//            Assert.IsInstanceOf<OkObjectResult>(result);
-//        }
-//    }
-//}
+            Assert.IsInstanceOf<OkObjectResult>(result);
+        }
+    }
+}

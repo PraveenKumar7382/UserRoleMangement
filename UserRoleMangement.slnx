@@ -1,4 +1,4 @@
 <Solution>
+  <Project Path="Application/Application.csproj" Id="a12146b4-48bb-4eb8-a7a1-2244f6608823" />
   <Project Path="UnitTestCases/UnitTestCases.csproj" Id="45442531-d5b8-44a4-ad03-1d83ea7a34d8" />
-  <Project Path="UserRoleMangement/UserRoleMangement.csproj" />
 </Solution>

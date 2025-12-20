@@ -1,96 +1,98 @@
-﻿using NUnit.Framework;
+﻿using Application.Models;
+using Application.TokenGeneration;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Localization;
+using Moq;
+using NUnit.Framework;
+using System;
 using System.IdentityModel.Tokens.Jwt;
-using UserRoleMangement.Models;
-using UserRoleMangement.TokenGeneration;
+using System.Linq;
+using System.Security.Claims;
 
-namespace UnitTestCases.Tokengeneration
+namespace UnitTestCases.TokenTests
 {
-    public class JwtToeknHelperTests
+    public class JwtTokenHelperTests
     {
-        private JwtTokenHelper CreateHelper()
-        {
-            var inMemorySettings = new Dictionary<string, string>
-        {
-            { "Jwt:Key", "this_is_a_very_secure_secret_key_123456" },
-            { "Jwt:ExpiryMinutes", "5" }
-        };
+        private Mock<IConfiguration> _configurationMock = null!;
+        private Mock<IStringLocalizer<JwtTokenHelper>> _localizerMock = null!;
+        private JwtTokenHelper _jwtTokenHelper = null!;
 
-            IConfiguration configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(inMemorySettings!)
-                .Build();
+        [SetUp]
+        public void Setup()
+        {
+            _configurationMock = new Mock<IConfiguration>();
+            _localizerMock = new Mock<IStringLocalizer<JwtTokenHelper>>();
 
-            return new JwtTokenHelper(configuration);
+            _localizerMock
+                .Setup(x => x[It.IsAny<string>()])
+                .Returns((string key) => new LocalizedString(key, key));
+
+            _configurationMock.Setup(c => c["Jwt:Key"]).Returns("MySuperSecretKeyForTesting123!");
+            _configurationMock.Setup(c => c["Jwt:ExpiryMinutes"]).Returns("5");
+
+            _jwtTokenHelper = new JwtTokenHelper(_configurationMock.Object, _localizerMock.Object);
         }
 
         [Test]
-        public void GenerateToken_WithValidUser_ReturnsJwtToken()
+        public void GenerateToken_ReturnsValidJwtToken()
         {
-            var helper = CreateHelper();
             var user = new User
             {
-                UserId = 10,
-                UserName = "Admin"
+                UserId = 1,
+                UserName = "testuser",
+                Role = new Role { RoleName = "Admin" }
             };
 
-            var token = helper.GenerateToken(user);
+            var tokenString = _jwtTokenHelper.GenerateToken(user);
 
-            Assert.That(token, Is.Not.Null);
+            Assert.That(tokenString, Is.Not.Null);
 
             var handler = new JwtSecurityTokenHandler();
-            var jwt = handler.ReadJwtToken(token);
+            var token = handler.ReadJwtToken(tokenString);
 
-            Assert.That(jwt.Claims.First(c => c.Type == "userId").Value, Is.EqualTo("10"));
+            var userIdClaim = token.Claims.FirstOrDefault(c => c.Type == "userId");
+            var roleClaim = token.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
+            var nameClaim = token.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+
+            Assert.That(user.UserId.ToString(), Is.EqualTo(userIdClaim?.Value));
+            Assert.That(user.Role.RoleName, Is.EqualTo(roleClaim?.Value));
+            Assert.That(user.UserName, Is.EqualTo( nameClaim?.Value));
+            Assert.That(token.ValidTo, Is.GreaterThan(DateTime.UtcNow));
         }
 
         [Test]
-        public void GenerateToken_ContainExpiry()
+        public void GenerateToken_KeyTooShort_HashesKeyAndGeneratesToken()
         {
-            var helper = CreateHelper();
-            var user = new User { UserId = 1, UserName = "Test" };
-            
-            var token = helper.GenerateToken(user);
+            _configurationMock.Setup(c => c["Jwt:Key"]).Returns("shortkey");
+            var user = new User
+            {
+                UserId = 2,
+                UserName = "shortkeyuser",
+                Role = new Role { RoleName = "User" }
+            };
 
-            var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+            var tokenString = _jwtTokenHelper.GenerateToken(user);
 
-            Assert.That(jwt.ValidTo, Is.Not.Null);
-            Assert.That(jwt.ValidTo > DateTime.UtcNow, Is.True);
+            Assert.That(tokenString, Is.Not.Null);
+
+            var handler = new JwtSecurityTokenHandler();
+            var token = handler.ReadJwtToken(tokenString);
+
+            Assert.That(user.UserId.ToString(), Is.EqualTo(token.Claims.First(c => c.Type == "userId").Value));
         }
 
         [Test]
-        public void GenerateToken_WhenKeyIsShort_GenerateToken()
+        public void GenerateToken_NullRole_ThrowsException()
         {
-            var settings = new Dictionary<string, string>
-        {
-            { "Jwt:Key", "shortkey" }, 
-            { "Jwt:ExpiryMinutes", "2" }
-        };
+            var user = new User
+            {
+                UserId = 3,
+                UserName = "noroleuser",
+                Role = null
+            };
 
-            IConfiguration config = new ConfigurationBuilder()
-                .AddInMemoryCollection(settings!)
-                .Build();
-
-            var helper = new JwtTokenHelper(config);
-
-            var user = new User { UserId = 5, UserName = "User" };
-
-            var token = helper.GenerateToken(user);
-
-            Assert.That(token, Is.Not.Null);
-        }
-
-        [Test]
-        public void GenerateToken_WhenConfigurationMissing_ThrowsException()
-        {
-            IConfiguration config = new ConfigurationBuilder().Build();
-            var helper = new JwtTokenHelper(config);
-
-            var user = new User { UserId = 1, UserName = "Test" };
-
-            var ex = Assert.Throws<InvalidOperationException>(() =>
-                helper.GenerateToken(user)
-            );
-
-            Assert.That(ex.Message, Is.Not.Null);
+            var ex = Assert.Throws<InvalidOperationException>(() => _jwtTokenHelper.GenerateToken(user));
+            Assert.That(ex.Message, Is.EqualTo("JwtGenerationFailed"));
         }
     }
 }
