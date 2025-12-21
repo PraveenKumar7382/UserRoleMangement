@@ -31,7 +31,7 @@ namespace UnitTestCases.RepositoriesTests
         [Test]
         public async Task CreateAsync_AddsSessionToDb()
         {
-            var session = new UserSession { UserId = 1, RefreshToken = "token1", ExpiresAt = DateTime.UtcNow.AddMinutes(10) };
+            var session = new UserSession { UserId = 1, RefreshToken = "token1", ExpiresAt = DateTime.Now.AddMinutes(10) };
 
             await _repository.CreateAsync(session);
 
@@ -43,7 +43,7 @@ namespace UnitTestCases.RepositoriesTests
         [Test]
         public async Task GetByRefreshTokenAsync_ReturnsActiveSession()
         {
-            var session = new UserSession { UserId = 1, RefreshToken = "token1", ExpiresAt = DateTime.UtcNow.AddMinutes(10), Revoked = false };
+            var session = new UserSession { UserId = 1, RefreshToken = "token1", ExpiresAt = DateTime.Now.AddMinutes(10), Revoked = false };
             _context.UserSessions.Add(session);
             await _context.SaveChangesAsync();
 
@@ -56,7 +56,7 @@ namespace UnitTestCases.RepositoriesTests
         [Test]
         public async Task GetByRefreshTokenAsync_RevokedSession_ReturnsNull()
         {
-            var session = new UserSession { UserId = 1, RefreshToken = "token1", ExpiresAt = DateTime.UtcNow.AddMinutes(10), Revoked = true };
+            var session = new UserSession { UserId = 1, RefreshToken = "token1", ExpiresAt = DateTime.Now.AddMinutes(10), Revoked = true };
             _context.UserSessions.Add(session);
             await _context.SaveChangesAsync();
 
@@ -68,9 +68,9 @@ namespace UnitTestCases.RepositoriesTests
         [Test]
         public async Task GetAllActiveSessionsForUserAsync_ReturnsOnlyActiveSessions()
         {
-            var active1 = new UserSession { UserId = 1, RefreshToken = "a1", ExpiresAt = DateTime.UtcNow.AddMinutes(10), Revoked = false };
-            var active2 = new UserSession { UserId = 1, RefreshToken = "a2", ExpiresAt = DateTime.UtcNow.AddMinutes(5), Revoked = false };
-            var expired = new UserSession { UserId = 1, RefreshToken = "exp", ExpiresAt = DateTime.UtcNow.AddMinutes(-5), Revoked = false };
+            var active1 = new UserSession { UserId = 1, RefreshToken = "a1", ExpiresAt = DateTime.Now.AddMinutes(10), Revoked = false };
+            var active2 = new UserSession { UserId = 1, RefreshToken = "a2", ExpiresAt = DateTime.Now.AddMinutes(5), Revoked = false };
+            var expired = new UserSession { UserId = 1, RefreshToken = "exp", ExpiresAt = DateTime.Now.AddMinutes(-5), Revoked = false };
             _context.UserSessions.AddRange(active1, active2, expired);
             await _context.SaveChangesAsync();
 
@@ -82,15 +82,15 @@ namespace UnitTestCases.RepositoriesTests
         [Test]
         public async Task ReplaceAsync_UpdatesSessionTokenAndExpiry()
         {
-            var session = new UserSession { UserId = 1, RefreshToken = "old", ExpiresAt = DateTime.UtcNow.AddMinutes(10) };
+            var session = new UserSession { UserId = 1, RefreshToken = "old", ExpiresAt = DateTime.Now.AddMinutes(10) };
             _context.UserSessions.Add(session);
             await _context.SaveChangesAsync();
 
-            await _repository.ReplaceAsync("old", "new", DateTime.UtcNow.AddMinutes(20));
+            await _repository.ReplaceAsync("old", "new", DateTime.Now.AddMinutes(20));
 
             var updated = await _context.UserSessions.FirstAsync();
             Assert.That(updated.RefreshToken, Is.EqualTo("new"));
-            Assert.That(updated.ExpiresAt, Is.GreaterThan(DateTime.UtcNow.AddMinutes(19)));
+            Assert.That(updated.ExpiresAt, Is.GreaterThan(DateTime.Now.AddMinutes(19)));
         }
 
         [Test]

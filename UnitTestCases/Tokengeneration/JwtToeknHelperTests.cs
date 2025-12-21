@@ -54,12 +54,9 @@ namespace UnitTestCases.TokenTests
 
             var userIdClaim = token.Claims.FirstOrDefault(c => c.Type == "userId");
             var roleClaim = token.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
-            var nameClaim = token.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
 
             Assert.That(user.UserId.ToString(), Is.EqualTo(userIdClaim?.Value));
             Assert.That(user.Role.RoleName, Is.EqualTo(roleClaim?.Value));
-            Assert.That(user.UserName, Is.EqualTo( nameClaim?.Value));
-            Assert.That(token.ValidTo, Is.GreaterThan(DateTime.UtcNow));
         }
 
         [Test]

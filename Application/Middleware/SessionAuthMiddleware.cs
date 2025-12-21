@@ -64,7 +64,7 @@ public class SessionAuthMiddleware
                 return;
             }
 
-            if (lastSession.ExpiresAt < DateTime.UtcNow)
+            if (lastSession.ExpiresAt < DateTime.Now)
             {
                 await userSessionRepository.DeleteSessionAsync(lastSession.UserId);
                 await Unauthorized(context, _localizer["SessionExpired"]);
@@ -77,14 +77,14 @@ public class SessionAuthMiddleware
                 return;
             }
 
-            if (DateTime.UtcNow - lastSession.LastActivityAt > TimeSpan.FromMinutes(5))
+            if (DateTime.Now - lastSession.LastActivityAt > TimeSpan.FromMinutes(5))
             {
                 await userSessionRepository.DeleteSessionAsync(lastSession.UserId);
                 await Unauthorized(context, _localizer["SessionExpired"]);
                 return;
             }
 
-            lastSession.LastActivityAt = DateTime.UtcNow;
+            lastSession.LastActivityAt = DateTime.Now;
             await userSessionRepository.UpdateSessionAsync(lastSession);
             context.Items["UserId"] = userId;
             context.Items["Role"] = roleName;

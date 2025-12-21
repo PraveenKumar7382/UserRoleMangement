@@ -46,7 +46,7 @@ namespace Application.TokenGeneration
 
                 var token = new JwtSecurityToken(
                     claims: claims,
-                    expires: DateTime.UtcNow.AddMinutes(
+                    expires: DateTime.Now.AddMinutes(
                         int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "3")
                     ),
                     signingCredentials: creds

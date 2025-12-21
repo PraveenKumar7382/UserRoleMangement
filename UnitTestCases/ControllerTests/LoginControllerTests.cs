@@ -132,7 +132,7 @@ namespace UnitTestCases.ControllerTests
                 .Setup(x => x.GetByRefreshTokenAsync(refreshToken))
                 .ReturnsAsync(new UserSession
                 {
-                    ExpiresAt = DateTime.UtcNow.AddMinutes(-1)
+                    ExpiresAt = DateTime.Now.AddMinutes(-1)
                 });
 
             var result = await _controller.Refresh();
@@ -155,7 +155,7 @@ namespace UnitTestCases.ControllerTests
                 .ReturnsAsync(new UserSession
                 {
                     UserId = user.UserId,
-                    ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+                    ExpiresAt = DateTime.Now.AddMinutes(5)
                 });
 
             _userRepositoryMock

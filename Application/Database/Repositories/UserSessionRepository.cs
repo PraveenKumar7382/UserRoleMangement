@@ -35,11 +35,11 @@ namespace Application.Database.Repositories
         public async Task<UserSession?> GetActiveSessionForUserAsync(int userId)
         {
             var session = await _db.UserSessions
-                .Where(s => s.UserId == userId && !s.Revoked && s.ExpiresAt > DateTime.UtcNow)
+                .Where(s => s.UserId == userId && !s.Revoked && s.ExpiresAt > DateTime.Now)
                 .FirstOrDefaultAsync();
 
             var expiredSessions = await _db.UserSessions
-                .Where(s => s.UserId == userId && s.ExpiresAt <= DateTime.UtcNow)
+                .Where(s => s.UserId == userId && s.ExpiresAt <= DateTime.Now)
                 .ToListAsync();
 
             if (expiredSessions.Any())
@@ -55,7 +55,7 @@ namespace Application.Database.Repositories
         public async Task<List<UserSession>> GetAllActiveSessionsForUserAsync(int userId)
         {
             return await _db.UserSessions
-                .Where(s => s.UserId == userId && !s.Revoked && s.ExpiresAt > DateTime.UtcNow)
+                .Where(s => s.UserId == userId && !s.Revoked && s.ExpiresAt > DateTime.Now)
                 .ToListAsync();
         }
 

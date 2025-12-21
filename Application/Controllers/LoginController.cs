@@ -53,9 +53,9 @@ namespace Application.Controllers
                 Id = sessionId,
                 UserId = result.User.UserId,
                 RefreshToken = refreshToken,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+                ExpiresAt = DateTime.Now.AddMinutes(5),
                 Revoked = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             });
 
             var accessToken = _jwtTokenHelper.GenerateToken(result.User, sessionId);
@@ -79,7 +79,7 @@ namespace Application.Controllers
                 return Unauthorized(new { message = _localizer["SessionNotFound"] });
 
             var session = await _sessionRepo.GetByRefreshTokenAsync(refreshToken);
-            if (session == null || session.ExpiresAt < DateTime.UtcNow)
+            if (session == null || session.ExpiresAt < DateTime.Now)
                 return Unauthorized(new { message = _localizer["SessionExpiredOrLoggedOut"] });
 
             var user = await _userRepo.GetById(session.UserId);
@@ -91,7 +91,7 @@ namespace Application.Controllers
             await _sessionRepo.ReplaceAsync(
                 refreshToken,
                 newRefreshToken,
-                DateTime.UtcNow.AddMinutes(20)
+                DateTime.Now.AddMinutes(20)
             );
 
             SetRefreshTokenCookie(sessionId, newRefreshToken);
@@ -138,7 +138,7 @@ namespace Application.Controllers
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.None, 
-                Expires = DateTime.UtcNow.AddMinutes(5)
+                Expires = DateTime.Now.AddMinutes(5)
             });
         }
 

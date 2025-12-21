@@ -104,7 +104,7 @@ namespace UnitTestCases.MiddlewareTests
             var token = GenerateJwt(1, "Admin");
             var context = CreateHttpContext(token: token);
             _userSessionRepoMock.Setup(r => r.GetActiveSessionForUserAsync(1))
-                .ReturnsAsync(new UserSession { UserId = 1, ExpiresAt = DateTime.UtcNow.AddMinutes(-1), Revoked = false });
+                .ReturnsAsync(new UserSession { UserId = 1, ExpiresAt = DateTime.Now.AddMinutes(-1), Revoked = false });
             var middleware = new SessionAuthMiddleware(_ => Task.CompletedTask, _localizerMock.Object);
 
             await middleware.InvokeAsync(context, _userSessionRepoMock.Object);
@@ -121,7 +121,7 @@ namespace UnitTestCases.MiddlewareTests
             var token = GenerateJwt(1, "Admin");
             var context = CreateHttpContext(token: token);
             _userSessionRepoMock.Setup(r => r.GetActiveSessionForUserAsync(1))
-                .ReturnsAsync(new UserSession { UserId = 1, ExpiresAt = DateTime.UtcNow.AddMinutes(10), Revoked = true });
+                .ReturnsAsync(new UserSession { UserId = 1, ExpiresAt = DateTime.Now.AddMinutes(10), Revoked = true });
             var middleware = new SessionAuthMiddleware(_ => Task.CompletedTask, _localizerMock.Object);
 
             await middleware.InvokeAsync(context, _userSessionRepoMock.Object);
@@ -137,7 +137,7 @@ namespace UnitTestCases.MiddlewareTests
             var token = GenerateJwt(1, "Admin");
             var context = CreateHttpContext(token: token);
             _userSessionRepoMock.Setup(r => r.GetActiveSessionForUserAsync(1))
-                .ReturnsAsync(new UserSession { UserId = 1, ExpiresAt = DateTime.UtcNow.AddMinutes(10), Revoked = false });
+                .ReturnsAsync(new UserSession { UserId = 1, ExpiresAt = DateTime.Now.AddMinutes(10), Revoked = false });
             var middleware = new SessionAuthMiddleware(_ => Task.CompletedTask, _localizerMock.Object);
 
             await middleware.InvokeAsync(context, _userSessionRepoMock.Object);
