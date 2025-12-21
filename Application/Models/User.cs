@@ -9,7 +9,7 @@ namespace Application.Models
     {
         [Key]
         [Required]
-        [JsonPropertyName("user_id")] // Optional: JSON naming in Swagger
+        [JsonIgnore]
         public int UserId { get; set; }
 
         [Required]
@@ -32,6 +32,7 @@ namespace Application.Models
 
         [Required]
         [JsonPropertyName("role_id")]
+        [JsonIgnore]
         public int RoleId { get; set; }
 
         [Required]
