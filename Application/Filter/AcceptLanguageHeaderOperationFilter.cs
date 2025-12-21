@@ -1,23 +1,25 @@
 ﻿using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
-
-public class AcceptLanguageHeaderOperationFilter : IOperationFilter
+namespace Application.Filter
 {
-    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    public class AcceptLanguageHeaderOperationFilter : IOperationFilter
     {
-        operation.Parameters ??= new List<OpenApiParameter>();
-
-        operation.Parameters.Add(new OpenApiParameter
+        public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
-            Name = "Accept-Language",
-            In = ParameterLocation.Header,
-            Required = false,
-            Description = "Language (hi-IN or en)",
-            Schema = new OpenApiSchema
+            operation.Parameters ??= [];
+
+            operation.Parameters.Add(new OpenApiParameter
             {
-                Type = "string",
-                Default = new Microsoft.OpenApi.Any.OpenApiString("hi-IN")
-            }
-        });
+                Name = "Accept-Language",
+                In = ParameterLocation.Header,
+                Required = false,
+                Description = "Language (hi-IN or en)",
+                Schema = new OpenApiSchema
+                {
+                    Type = "string",
+                    Default = new Microsoft.OpenApi.Any.OpenApiString("hi-IN")
+                }
+            });
+        }
     }
 }

@@ -19,7 +19,7 @@ namespace Application.TokenGeneration
             _localizer = localizer;
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, Guid sessionId)
         {
             try
             {
@@ -27,7 +27,8 @@ namespace Application.TokenGeneration
                 {
                   new Claim("userId", user.UserId.ToString()),
                   new Claim(ClaimTypes.Role, user.Role!.RoleName),
-                  new Claim(ClaimTypes.Name, user.UserName)
+                  new Claim(ClaimTypes.Name, user.UserName),
+                  new Claim("sessionId", sessionId.ToString())
                 };
 
                 var keyString = _configuration["Jwt:Key"];

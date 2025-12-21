@@ -25,7 +25,7 @@ public class SessionAuthMiddleware
             if (context.Request.Path.StartsWithSegments("/swagger") ||
                 context.Request.Path.StartsWithSegments("/favicon") ||
                 context.Request.Path.StartsWithSegments("/openapi") || 
-                context.Request.Path.StartsWithSegments("/api/login") ||
+                context.Request.Path.StartsWithSegments("/api/login/Login") ||
                 context.Request.Path.StartsWithSegments("/api/user/create") ||
                 context.Request.Path.StartsWithSegments("/api/user/forgotpassword") ||
                 context.Request.Path.StartsWithSegments("/api/role"))
@@ -54,6 +54,7 @@ public class SessionAuthMiddleware
 
             int userId = int.Parse(jwt.Claims.First(c => c.Type == "userId").Value);
             string roleName = jwt.Claims.First(c => c.Type == ClaimTypes.Role).Value;
+            var sessionId = Guid.Parse(jwt.Claims.First(c => c.Type == "sessionId").Value);
 
             var lastSession = await userSessionRepository.GetActiveSessionForUserAsync(userId);
 
@@ -76,8 +77,18 @@ public class SessionAuthMiddleware
                 return;
             }
 
+            if (DateTime.UtcNow - lastSession.LastActivityAt > TimeSpan.FromMinutes(5))
+            {
+                await userSessionRepository.DeleteSessionAsync(lastSession.UserId);
+                await Unauthorized(context, _localizer["SessionExpired"]);
+                return;
+            }
+
+            lastSession.LastActivityAt = DateTime.UtcNow;
+            await userSessionRepository.UpdateSessionAsync(lastSession);
             context.Items["UserId"] = userId;
             context.Items["Role"] = roleName;
+            context.Items["sessionId"] = sessionId;
             await _next(context);
         }
         catch (Exception ex)

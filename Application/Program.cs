@@ -11,6 +11,7 @@ using Application.Database.Repositories.Interfaces;
 using Application.Middleware;
 using Application.TokenGeneration;
 using Microsoft.OpenApi.Models;
+using Application.Filter;
 
 public partial class Program
 {

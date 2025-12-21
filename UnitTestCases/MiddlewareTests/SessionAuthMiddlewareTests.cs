@@ -41,7 +41,7 @@ namespace UnitTestCases.MiddlewareTests
 
         private static string GenerateJwt(int userId, string role)
         {
-            var claims = new[] { new Claim("userId", userId.ToString()), new Claim(ClaimTypes.Role, role) };
+            var claims = new[] { new Claim("userId", userId.ToString()), new Claim(ClaimTypes.Role, role), new Claim("sessionId", Guid.NewGuid().ToString()) };
             var token = new JwtSecurityToken(claims: claims);
             return new JwtSecurityTokenHandler().WriteToken(token);
         }

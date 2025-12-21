@@ -4,8 +4,8 @@ using Application.TokenGeneration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
-using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Cryptography;
+using System.Security.Claims;
 
 namespace Application.Controllers
 {
@@ -33,7 +33,7 @@ namespace Application.Controllers
             _localizer = localizer;
         }
 
-        [HttpPost]
+        [HttpPost("Login")]
         public async Task<IActionResult> Login(Login login)
         {
             var result = await _userRepo.LoginAsync(login);
@@ -44,83 +44,83 @@ namespace Application.Controllers
             if (activeSession != null)
                 return Unauthorized(new { message = _localizer["UserAlreadyLoggedIn"] });
 
-            var accessToken = _jwtTokenHelper.GenerateToken(result.User);
+
             var refreshToken = GenerateRefreshToken();
             var sessionId = Guid.NewGuid();
-
+            
             await _sessionRepo.CreateAsync(new UserSession
             {
                 Id = sessionId,
                 UserId = result.User.UserId,
                 RefreshToken = refreshToken,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(20),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(5),
                 Revoked = false,
                 CreatedAt = DateTime.UtcNow
             });
 
+            var accessToken = _jwtTokenHelper.GenerateToken(result.User, sessionId);
             SetRefreshTokenCookie(sessionId, refreshToken);
-
-            var refreshUrl = $"{Request.Scheme}://{Request.Host}/api/login/refresh?sessionId={sessionId}";
 
             return Ok(new
             {
                 message = _localizer["LoginSuccess"],
                 accessToken,
-                expiresInMinutes = _configuration["Jwt:ExpiryMinutes"],
-                refreshTokenUrl = refreshUrl
+                expiresInMinutes = _configuration["Jwt:ExpiryMinutes"]
             });
         }
 
         [HttpPost("refresh")]
-        public async Task<IActionResult> RefreshToken([FromQuery] Guid guid)
+        public async Task<IActionResult> Refresh()
         {
-            var cookieName = GetRefreshTokenCookieName(guid);
+            var sessionId = GetSessionIdFromJwt();
+            var cookieName = GetRefreshTokenCookieName(sessionId);
+
             if (!Request.Cookies.TryGetValue(cookieName, out var refreshToken))
                 return Unauthorized(new { message = _localizer["SessionNotFound"] });
 
             var session = await _sessionRepo.GetByRefreshTokenAsync(refreshToken);
             if (session == null || session.ExpiresAt < DateTime.UtcNow)
-            {
-                await _sessionRepo.DeleteSessionAsync(session?.UserId ?? 0);
                 return Unauthorized(new { message = _localizer["SessionExpiredOrLoggedOut"] });
-            }
 
             var user = await _userRepo.GetById(session.UserId);
             if (user == null)
                 return Unauthorized();
 
-            var newAccessToken = _jwtTokenHelper.GenerateToken(user);
             var newRefreshToken = GenerateRefreshToken();
-            await _sessionRepo.ReplaceAsync(refreshToken, newRefreshToken, DateTime.UtcNow.AddMinutes(20));
-            SetRefreshTokenCookie(guid, newRefreshToken);
 
-            var refreshUrl = $"{Request.Scheme}://{Request.Host}/api/login/refresh?sessionId={guid}";
+            await _sessionRepo.ReplaceAsync(
+                refreshToken,
+                newRefreshToken,
+                DateTime.UtcNow.AddMinutes(20)
+            );
+
+            SetRefreshTokenCookie(sessionId, newRefreshToken);
+
+            var newAccessToken = _jwtTokenHelper.GenerateToken(user, sessionId);
 
             return Ok(new
             {
                 message = _localizer["TokenRefreshed"],
-                accessToken = newAccessToken,
-                expiresInMinutes = _configuration["Jwt:ExpiryMinutes"],
-                refreshTokenUrl = refreshUrl
+                accessToken = newAccessToken
             });
         }
 
         [HttpPost("logout")]
-        public async Task<IActionResult> Logout([FromQuery] Guid guid)
+        public async Task<IActionResult> Logout()
         {
-            var cookieName = GetRefreshTokenCookieName(guid);
-            if (!Request.Cookies.TryGetValue(cookieName, out var refreshToken))
-                return Unauthorized(new { message = _localizer["SessionNotFound"] });
+            var sessionId = GetSessionIdFromJwt();
+            var cookieName = GetRefreshTokenCookieName(sessionId);
 
-            var session = await _sessionRepo.GetByRefreshTokenAsync(refreshToken);
-            if (session == null)
-                return Unauthorized(new { message = _localizer["InvalidRefreshToken"] });
-
-            var userId = session.UserId;
-            await _sessionRepo.DeleteSessionAsync(userId);
+            await _sessionRepo.DeleteSessionByGuidAsync(sessionId);
             Response.Cookies.Delete(cookieName);
-
+          
             return Ok(new { message = _localizer["LogoutSuccess"] });
+        }
+
+        private Guid GetSessionIdFromJwt()
+        {
+            var claim = HttpContext.Items["sessionId"]?.ToString();
+            return Guid.Parse(claim!);
         }
 
         private static string GenerateRefreshToken()
@@ -137,8 +137,8 @@ namespace Application.Controllers
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddMinutes(20)
+                SameSite = SameSiteMode.None, 
+                Expires = DateTime.UtcNow.AddMinutes(5)
             });
         }
 

@@ -26,6 +26,12 @@ namespace Application.Database.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task UpdateSessionAsync(UserSession session)
+        {
+            _db.UserSessions.Update(session);
+            await _db.SaveChangesAsync();
+        }
+
         public async Task<UserSession?> GetActiveSessionForUserAsync(int userId)
         {
             var session = await _db.UserSessions

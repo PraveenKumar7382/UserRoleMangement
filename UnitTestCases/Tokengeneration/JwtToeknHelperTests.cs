@@ -43,7 +43,9 @@ namespace UnitTestCases.TokenTests
                 Role = new Role { RoleName = "Admin" }
             };
 
-            var tokenString = _jwtTokenHelper.GenerateToken(user);
+            Guid guid = Guid.NewGuid();
+
+            var tokenString = _jwtTokenHelper.GenerateToken(user, guid);
 
             Assert.That(tokenString, Is.Not.Null);
 
@@ -70,8 +72,8 @@ namespace UnitTestCases.TokenTests
                 UserName = "shortkeyuser",
                 Role = new Role { RoleName = "User" }
             };
-
-            var tokenString = _jwtTokenHelper.GenerateToken(user);
+            Guid guid = Guid.NewGuid();
+            var tokenString = _jwtTokenHelper.GenerateToken(user, guid);
 
             Assert.That(tokenString, Is.Not.Null);
 
@@ -90,8 +92,9 @@ namespace UnitTestCases.TokenTests
                 UserName = "noroleuser",
                 Role = null
             };
+            Guid guid = Guid.NewGuid();
 
-            var ex = Assert.Throws<InvalidOperationException>(() => _jwtTokenHelper.GenerateToken(user));
+            var ex = Assert.Throws<InvalidOperationException>(() => _jwtTokenHelper.GenerateToken(user, guid));
             Assert.That(ex.Message, Is.EqualTo("JwtGenerationFailed"));
         }
     }

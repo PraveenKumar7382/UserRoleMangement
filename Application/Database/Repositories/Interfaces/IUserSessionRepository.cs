@@ -10,6 +10,7 @@ namespace Application.Database.Repositories.Interfaces
         Task RevokeAsync(string refreshToken);
         Task DeleteSessionByGuidAsync(Guid userId);
         Task DeleteSessionAsync(int userId);
+        Task UpdateSessionAsync(UserSession session);
         Task ReplaceAsync(string oldToken, string newToken, DateTime expiresAt);
     }
 }

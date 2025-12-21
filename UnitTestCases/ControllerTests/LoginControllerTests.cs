@@ -66,7 +66,7 @@ namespace UnitTestCases.ControllerTests
                 .ReturnsAsync((UserSession?)null);
 
             _jwtTokenHelperMock
-                .Setup(x => x.GenerateToken(user))
+                .Setup(x => x.GenerateToken(user, It.IsAny<Guid>()))
                 .Returns("access_token");
 
             var result = await _controller.Login(login);
@@ -107,15 +107,84 @@ namespace UnitTestCases.ControllerTests
             Assert.That(result, Is.InstanceOf<UnauthorizedObjectResult>());
         }
 
-        
         [Test]
-        public async Task Logout_WhenSessionNotFound_ReturnsUnauthorized()
+        public async Task Refresh_WhenRefreshTokenCookieMissing_ReturnsUnauthorized()
         {
-            var guid = Guid.NewGuid();
+            var sessionId = Guid.NewGuid();
 
-            var result = await _controller.Logout(guid);
+            _controller.HttpContext.Items["sessionId"] = sessionId.ToString();
+
+            var result = await _controller.Refresh();
 
             Assert.That(result, Is.InstanceOf<UnauthorizedObjectResult>());
+        }
+
+        [Test]
+        public async Task Refresh_WhenSessionExpired_ReturnsUnauthorized()
+        {
+            var sessionId = Guid.NewGuid();
+            var refreshToken = "old_refresh_token";
+
+            _controller.HttpContext.Items["sessionId"] = sessionId.ToString();
+            _controller.HttpContext.Request.Headers["Cookie"] = $"refresh_{sessionId}={refreshToken}";
+
+            _sessionRepoMock
+                .Setup(x => x.GetByRefreshTokenAsync(refreshToken))
+                .ReturnsAsync(new UserSession
+                {
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(-1)
+                });
+
+            var result = await _controller.Refresh();
+
+            Assert.That(result, Is.InstanceOf<UnauthorizedObjectResult>());
+        }
+
+        [Test]
+        public async Task Refresh_WithValidSession_ReturnsOk()
+        {
+            var sessionId = Guid.NewGuid();
+            var refreshToken = "valid_refresh";
+            var user = new User { UserId = 1 };
+
+            _controller.HttpContext.Items["sessionId"] = sessionId.ToString();
+            _controller.HttpContext.Request.Headers["Cookie"] = $"refresh_{sessionId}={refreshToken}";
+
+            _sessionRepoMock
+                .Setup(x => x.GetByRefreshTokenAsync(refreshToken))
+                .ReturnsAsync(new UserSession
+                {
+                    UserId = user.UserId,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+                });
+
+            _userRepositoryMock
+                .Setup(x => x.GetById(user.UserId))
+                .ReturnsAsync(user);
+
+            _jwtTokenHelperMock
+                .Setup(x => x.GenerateToken(user, sessionId))
+                .Returns("new_access_token");
+
+            var result = await _controller.Refresh();
+
+            Assert.That(result, Is.InstanceOf<OkObjectResult>());
+        }
+
+        [Test]
+        public async Task Logout_WithValidSession_ReturnsOk()
+        {
+            var sessionId = Guid.NewGuid();
+
+            _controller.HttpContext.Items["sessionId"] = sessionId.ToString();
+
+            var result = await _controller.Logout();
+
+            _sessionRepoMock.Verify(
+                x => x.DeleteSessionByGuidAsync(sessionId),
+                Times.Once);
+
+            Assert.That(result, Is.InstanceOf<OkObjectResult>());
         }
     }
 }
